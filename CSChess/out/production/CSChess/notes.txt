@@ -1,0 +1,30 @@
+changed isInCheck to setCheck
+created returnCheck()
+created inCheck variable
+
+so where im at rn 9;08 pm 3/20/2020 is that i changed how the check is stored.
+now im testing pieces on if they can move if the king is in chess
+
+I still have to test whether the program  stops someone from moving if their king is in check and in danger
+            and their move doesnt save the king
+
+
+b6 b5
+f6 e4
+
+a piece cant move if it leaves the king in check
+
+
+d2 d4
+e7 e6
+c2 c3
+e6 e5
+d4 e5
+a7 a6
+c1 d2
+d8 h4
+f2 f3
+
+
+TODO: make sure pieces can't move if their king is in check, unless it saves the king
+and make sure that pieces cant move if the resulting move leaves the king in check.
