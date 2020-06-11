@@ -1,65 +1,22 @@
-// 12MAR2020 9:24PM STATUS: incomplete at the moment due to the check movement.
+/*
+ * Authors: Dylan and Ari
+ * Rook.java
+ * This class handles all movement pertaining to the rook piece.
+ */
 public class Rook extends ChessPiece
 {
+    private boolean hasMoved = false;
+
     public Rook(int initialRow, int initialCol, int pieceColor)
     {
         super(initialRow, initialCol, pieceColor);
     }
 
-    public boolean canMove(int r, int c, ChessBoard b)
+    public boolean canMove(int fr, int fc, ChessBoard b)
     {
-        super.availableMoves = this.getAvailableMoves(b);
-        return this.getAM(r, c);
-    }
+        int or = this.getRow();
+        int oc = this.getCol();
 
-    public boolean move(int r, int c, ChessBoard b)
-    {
-        int ogR = this.getRow();
-        int ogC = this.getCol();
-
-        if (this.canMove(r, c, b))
-        {
-            if (b.pieceAt(r, c) != null)
-            {
-                System.out.println(b.pieceAt(ogR, ogC).getColor() + " " + b.pieceAt(ogR, ogC) + " has taken " + b.pieceAt(r, c).getColor() + " " + b.pieceAt(r, c) + "!");
-
-                b.changeBoard(r,c,null);
-            }
-
-            b.changeBoard(r, c, b.pieceAt(ogR, ogC));
-            b.changeBoard(ogR, ogC, null);
-
-            this.setRow(r);
-            this.setCol(c);
-
-            return true;
-        }
-
-        return false;
-    }
-
-    public boolean[][] getAvailableMoves(ChessBoard b)
-    {
-        int ogR = this.getRow();
-        int ogC = this.getCol();
-
-        for (int i = 0; i < 8; i++)
-        {
-            for (int j = 0; j < 8; j++)
-            {
-                if (testMove(ogR, ogC, i, j, b))
-                    this.changeAM(i,j,true);
-            }
-        }
-        return super.availableMoves;
-    }
-
-    /*
-     * Tries to prove false until true.
-     * Checks for all the things that will prevent it from working.
-     */
-    public boolean testMove(int or, int oc, int fr, int fc, ChessBoard b)
-    {
         // rook can move in + patterns
         // can only move row or col at one time
         // can not move through other pieces
@@ -123,14 +80,54 @@ public class Rook extends ChessPiece
             if (b.pieceAt(fr, fc).getColor() == this.getColor()) // cant take piece of same color
                 return false;
 
-        // cannot move if King is in check.
-        // TODO: come back to this after King is complete.
-//        System.out.println("iopiop" + b.getKing(clr));
-        if (b.getKing(b.pieceAt(or,oc).getColor()).returnCheck()) // new installment 20MAR2020 8:23PM
-            return b.ifIMoveAPieceHereDoesItRemoveKingFromCheck(fr, fc, b.pieceAt(or,oc).getColor(), b);
+//        return (!b.ifIMoveAPieceHereIsKingInCheck(or,oc,fr,fc,b.pieceAt(or,oc).getColor(), b));
 
         return true;
     }
+
+    public boolean move(int r, int c, ChessBoard b)
+    {
+        int ogR = this.getRow();
+        int ogC = this.getCol();
+
+        if (this.canMove(r, c, b))
+        {
+            if (b.pieceAt(r, c) != null)
+            {
+                if (b.pieceAt(ogR, ogC).getColor() == 0) // if white piece is taking black piece
+                    System.out.println("White piece " + b.pieceAt(ogR, ogC) + " has taken black piece " + b.pieceAt(r,c) + ".");
+                else // if black piece is taking white piece
+                    System.out.println("Black piece " + b.pieceAt(ogR, ogC) + " has taken white piece " + b.pieceAt(r,c) + ".");
+
+                // STALEMATE CHECK:
+                Chess.turnsSincePawnMovedOrCaptureMade = 0;
+
+                b.changeBoard(r,c,null);
+            }
+
+            b.changeBoard(r, c, b.pieceAt(ogR, ogC));
+            b.changeBoard(ogR, ogC, null);
+
+            b.pieceAt(r,c).setRow(r);
+            b.pieceAt(r,c).setCol(c);
+
+            //this.canMove(r,c,b); // new as of 1:48 3/21.
+
+            // For Castling
+            hasMoved = true;
+
+            return true;
+        }
+
+        return false;
+    }
+
+    // For castling
+    public boolean returnHasMoved()
+    {
+        return hasMoved;
+    }
+
 
     public String toString()
     {

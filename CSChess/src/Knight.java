@@ -1,4 +1,8 @@
-// 12MAR2020 9:24PM STATUS: incomplete at the moment due to the check movement.
+/*
+ * Authors: Dylan and Ari
+ * Knight.java
+ * This class handles all movement pertaining to the knight piece.
+ */
 public class Knight extends ChessPiece
 {
     public Knight(int initialRow, int initialCol, int pieceColor)
@@ -6,80 +10,10 @@ public class Knight extends ChessPiece
         super(initialRow, initialCol, pieceColor);
     }
 
-    // uses availableMoves to check if the move is valid.
-    public boolean canMove(int r, int c, ChessBoard b)
+    public boolean canMove(int fr, int fc, ChessBoard b)
     {
-        // can move if the available move is there. Color of pieces should be
-        // accounted for in the testMove method.
-        super.availableMoves = this.getAvailableMoves(b);
-        return this.getAM(r, c);
-    }
-
-    // handles all movement policy
-    // checks if movement is possible
-    // takes pieces off the board
-    // moves the objects
-    public boolean move(int r, int c, ChessBoard b)
-    {
-        int ogR = this.getRow();
-        int ogC = this.getCol();
-
-        if (this.canMove(r, c, b)) // movement is possible
-        {
-            // moves piece
-            // if taking a piece
-            if (b.pieceAt(r, c) != null)
-            {
-                // prints out the notification
-                System.out.println(b.pieceAt(ogR, ogC).getColor() + " " + b.pieceAt(ogR, ogC) + " has taken " + b.pieceAt(r, c).getColor() + " " + b.pieceAt(r, c) + "!");
-
-                b.changeBoard(r,c,null); // deletes the captured piece
-            }
-
-            b.changeBoard(r, c, b.pieceAt(ogR, ogC));
-            b.changeBoard(ogR, ogC, null); // removes original piece from last position
-
-            // This a was problem before, where the actual values inside the object weren't changed when the piece moved.
-            // Before, only the location inside the array moved. Not both location along with piece values.
-            this.setRow(r);
-            this.setCol(c);
-
-            return true;
-        }
-
-        return false; // movement is impossible.
-    }
-
-    public boolean[][] getAvailableMoves(ChessBoard b)
-    {
-        // super.availableMoves[][]
-        // get original coordinates
-        int ogR = this.getRow();
-        int ogC = this.getCol();
-
-        for (int i = 0; i < 8; i++)
-        {
-            for (int j = 0; j < 8; j++)
-            {
-                if (testMove(ogR, ogC, i, j, b))
-                    this.changeAM(i,j,true); // I can remove changeAM if AM is allowed to stay public in CP.java.
-            }
-        }
-        return super.availableMoves;
-    }
-
-    // used to test each individual move for the getAvailableMethods()
-
-    /**
-     * Tries to test if the move works, returns true.
-     * If none of the tests works it returns false.
-     * Tries to prove true until false.
-     */
-    public boolean testMove(int or, int oc, int fr, int fc, ChessBoard b)
-    {
-        // move must either be to an empty tile or opposite color piece
-        // this method tests if knight can move from or oc to fr fc
-        // cycles through valid move locations and if the fr and fc match up return true
+        int or = this.getRow();
+        int oc = this.getCol();
 
         /*
          * Unique movement checks.
@@ -156,20 +90,65 @@ public class Knight extends ChessPiece
             if (b.pieceAt(fr, fc).getColor() == this.getColor()) // cant take piece of same color
                 return false;
 
+        /*// piece cannot move if it leaves the King in check.
+        if (b.ifIRemoveThePieceHereDoesItPutKingInCheck(or, oc, fr, fc, b.pieceAt(or,oc).getColor(), b))
+            return false; // If it puts king in check, move can't work.
+
         // cannot move if King is in check.
         // TODO: come back to this after King is complete.
         // If King is in check and the other piece removes it from check.
         // *finds the original piece's color, and finds the king of that color.
         // *then checks if the king is in check
         if (b.getKing(b.pieceAt(or,oc).getColor()).returnCheck()) // new installment 20MAR2020 8:23PM
-        {
-            if (b.ifIMoveAPieceHereDoesItRemoveKingFromCheck(fr, fc, b.pieceAt(or, oc).getColor(), b))
-            {
-                return true;
-            }
-        }
+            return b.ifIMoveAPieceHereDoesItRemoveKingFromCheck(or, oc, fr, fc, b.pieceAt(or, oc).getColor(), b);*/
+
+        // if I move a piece there and king is not in check, move works
+//        return (!b.ifIMoveAPieceHereIsKingInCheck(or,oc,fr,fc,b.pieceAt(or,oc).getColor(), b));
 
         return false;
+    }
+
+    // handles all movement policy
+    // checks if movement is possible
+    // takes pieces off the board
+    // moves the objects
+    public boolean move(int r, int c, ChessBoard b)
+    {
+        int ogR = this.getRow();
+        int ogC = this.getCol();
+
+        if (this.canMove(r, c, b)) // movement is possible
+        {
+            // moves piece
+            // if taking a piece
+            if (b.pieceAt(r, c) != null)
+            {
+                // prints out the notification
+                if (b.pieceAt(ogR, ogC).getColor() == 0) // if white piece is taking black piece
+                    System.out.println("White piece " + b.pieceAt(ogR, ogC) + " has taken black piece " + b.pieceAt(r,c) + ".");
+                else // if black piece is taking white piece
+                    System.out.println("Black piece " + b.pieceAt(ogR, ogC) + " has taken white piece " + b.pieceAt(r,c) + ".");
+
+                // STALEMATE CHECK:
+                Chess.turnsSincePawnMovedOrCaptureMade = 0;
+
+                b.changeBoard(r,c,null); // deletes the captured piece
+            }
+
+            b.changeBoard(r, c, b.pieceAt(ogR, ogC)); // moves og piece
+            b.changeBoard(ogR, ogC, null); // removes original piece from last position
+
+            // This a was problem before, where the actual values inside the object weren't changed when the piece moved.
+            // Before, only the location inside the array moved. Not both location along with piece values.
+            b.pieceAt(r,c).setRow(r);
+            b.pieceAt(r,c).setCol(c);
+
+            //this.canMove(r,c,b); // new as of 1:48 3/21.
+
+            return true;
+        }
+
+        return false; // movement is impossible.
     }
 
     public String toString()

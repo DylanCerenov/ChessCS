@@ -1,3 +1,10 @@
+/*
+ * Authors: Dylan and Ari
+ * ChessBoard.java
+ * This class handles the functions of the board, such as setting up the
+ * pieces and moving pieces.
+ */
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
@@ -5,15 +12,14 @@ import java.util.Scanner;
 
 public class ChessBoard
 {
-    private ChessPiece[][] board;
+    private ChessPiece[][] board = new ChessPiece[8][8];
+    private ChessPiece lastMovedForEnPassant = null;
 
     /**
      * Creates a default 8x8 chessboard with ChessPieces in their default locations. Populates board.
      */
     public ChessBoard()
     {
-        board = new ChessPiece[8][8];
-
         // Fills the board with blanks
         for (int i = 0; i < 8; i++)
         {
@@ -79,12 +85,19 @@ public class ChessBoard
         board[3][3] = new King(3,3,1);*/
 
         // for testing check movement
-        /*
-        board[0][7] = new King(0,7,1);
+
+        /*board[0][7] = new King(0,7,1);
         board[0][0] = new Rook(0,0,0);
         board[2][1] = new Rook(2,1,0);
         board[7][3] = new King(7,3,0);
         board[2][5] = new Knight(2,5,1);*/
+
+        // for testing 50 move standoff
+        /*board[0][5] = new King(0,5,1);
+        board[7][5] = new King(7,5,0);
+
+        board[1][0] = new Pawn(1,0,1);
+        board[6][0] = new Pawn(7,0,0);*/
     }
 
     /**
@@ -94,7 +107,16 @@ public class ChessBoard
      */
     public ChessBoard(File f) throws FileNotFoundException
     {
-        ArrayList<String> input = new ArrayList<String>();
+        // Fills the board with blanks
+        for (int i = 0; i < 8; i++) 
+        {
+            for (int j = 0; j < 8; j++) 
+            {
+                board[i][j] = null;
+            }
+        }
+
+        ArrayList<String> input = new ArrayList<>();
         try {
             Scanner scan = new Scanner(f);
             int count = 0;
@@ -105,9 +127,9 @@ public class ChessBoard
 
             for(int i = 0; i < input.size(); i++)
             {
-                int switchColor = 0;
+                int switchColor = 1;
                 if(input.get(i).charAt(0) == 'w')
-                    switchColor = 1;
+                    switchColor = 0;
                 if (input.get(i).charAt(1) == 'P')
                     board[i / 8][i % 8] = new Pawn(i / 8, i % 8, switchColor);
                 if (input.get(i).charAt(1) == 'R')
@@ -122,7 +144,7 @@ public class ChessBoard
                     board[i / 8][i % 8] = new King(i / 8, i % 8, switchColor);
             }
         } catch (FileNotFoundException e) {
-            System.out.println("File not found.");
+            System.out.println("[ERROR]: File not found.");
         }
     }
 
@@ -139,13 +161,23 @@ public class ChessBoard
         /*
          * TODO: Add additional criteria to move
          */
+        // if null
         if (pieceAt(or, oc) == null)
         {
-            System.out.println("[error]: initial piece location is null.");
+            System.out.println("[ERROR]: Initial piece location is null.");
             return false;
         }
 
-        // System.out.println("Main count: " + Main.count);
+        // Checks if it doesn't move anywhere.
+        if (or == dr && oc == dc)
+            return false;
+
+        // bandaid solution como un jefe
+        if (pieceAt(dr,dc) != null && pieceAt(or,oc).getColor() == pieceAt(dr,dc).getColor())
+        {
+            System.out.println("[ERROR]: You can't take your own pieces.");
+            return false;
+        }
 
         // wrong piece color being moved
         // spent 20 minutes figuring out why colors were opposite. Turns out this was the problem.
@@ -164,17 +196,36 @@ public class ChessBoard
             return false;
         }
 
+        // checks if u move a piece, the king is in check.
+        // if the king is in check, the move doesn't work.
+        if (ifIMoveAPieceHereIsKingInCheck(or, oc, dr, dc, board[or][oc].getColor(), this))
+        {
+            System.out.println("[ERROR]: Move invalid. Moving this piece would leave your King in check.");
+            return false;
+        }
+
+        // System.out.println(or + "," + oc + "  " + dr + "," + dc);
+
         // Checks if piece can move successfully.
         if (pieceAt(or, oc).canMove(dr, dc, this))
         {
+            // STALEMATE CHECK: Defaults to adding an additional.
+            // STALEMATE CHECK: Resets to 0 in other places.
+            Chess.turnsSincePawnMovedOrCaptureMade++;
+
             // if true it moves
             pieceAt(or, oc).move(dr, dc, this); // moves piece
 
-            System.out.println("TESTING: SUCCESSFUL MOVE");
+            //System.out.println("TESTING: SUCCESSFUL MOVE");
 
             // checks to see if pawn promotion...
             if (pieceAt(dr,dc) instanceof Pawn)
             {
+                // STALEMATE CHECK:
+                // If pawn moves at all it resets the counter.
+                Chess.turnsSincePawnMovedOrCaptureMade = 0;
+
+
                 // white and is in opposite kings row
                 if ((pieceAt(dr,dc).getColor() == 0) && (dr == 0))
                 {
@@ -186,11 +237,14 @@ public class ChessBoard
                 }
             }
 
+            // for en passant record the last piece that moved to check for all necessary requirements notably time
+            lastMovedForEnPassant = pieceAt(dr,dc);
+
             return true;
         }
 
         // if move can't be done
-        System.out.println(pieceAt(or,oc) + " can NOT move");
+        System.out.println("[ERROR]: " + pieceAt(or,oc) + " cannot move to that location.");
         return false;
     }
 
@@ -213,63 +267,133 @@ public class ChessBoard
                 }
             }
         }
+        System.out.println("[ERROR]: King not found.");
         return null;
+
+
+//        for (int x = 0; x < 8; x++)
+//        {
+//            for (int y = 0; y < 8; y++)
+//            {
+//                if (board[x][y] != null)
+//                {
+//                    if ((board[x][y] instanceof King) && (board[x][y].getColor() == color))
+//                    {
+//                        return (King) board[x][y];
+//                    }
+//                }
+//            }
+//        }
+//        System.out.println("king not found");
+//        return null;
+
+
+
     }
 
     /*
      * Call this method when the King is in check already.
      * Code moves a "dummy" piece temporarily in order to call King.isInCheck() again.
+     * true: king is in check, invalid move
+     * false: king is not in check, move is valid
      */
-    public boolean ifIMoveAPieceHereDoesItRemoveKingFromCheck(int row, int col, int color, ChessBoard b)
+    public boolean ifIMoveAPieceHereIsKingInCheck(int or, int oc, int fr, int fc, int color, ChessBoard b)
     {
-        boolean result = false;
-        // I might have to temporarily remove a piece and place it back later.
+        boolean takingPiece = false;
+        if (b.pieceAt(fr,fc) != null)
+            takingPiece = true;
 
-        if (b.pieceAt(row,col) == null) // no piece to worry about
-        {
-            // arbitrarily use queen as a body shield for testing b/c I dont have neutral pieces
-            board[row][col] = new Queen(row,col,color);
+        ChessPiece copyOfAttacker = null;
+        if (board[or][oc] instanceof Knight)
+            copyOfAttacker = new Knight(or, oc, color);
+        else if (board[or][oc] instanceof Rook)
+            copyOfAttacker = new Rook(or, oc, color);
+        else if (board[or][oc] instanceof Bishop)
+            copyOfAttacker = new Bishop(or, oc, color);
+        else if (board[or][oc] instanceof Queen)
+            copyOfAttacker = new Queen(or, oc, color);
+        else if (board[or][oc] instanceof Pawn)
+            copyOfAttacker = new Pawn(or, oc, color);
+        else // then its a king
+            copyOfAttacker = new King(or, oc, color);
 
-            // get whats needed
-            b.getKing(color).setCheck(b);
-            result = b.getKing(color).returnCheck();
-
-            // now fix everything to back to where it was
-            board[row][col] = null;
-            b.getKing(color).setCheck(b);
+        ChessPiece copyOfDefender = null;
+        if (takingPiece) {
+            if (board[fr][fc] instanceof Knight)
+                copyOfDefender = new Knight(fr, fc, b.pieceAt(fr, fc).getColor());
+            else if (board[fr][fc] instanceof Rook)
+                copyOfDefender = new Rook(fr, fc, b.pieceAt(fr, fc).getColor());
+            else if (board[fr][fc] instanceof Bishop)
+                copyOfDefender = new Bishop(fr, fc, b.pieceAt(fr, fc).getColor());
+            else if (board[fr][fc] instanceof Queen)
+                copyOfDefender = new Queen(fr, fc, b.pieceAt(fr, fc).getColor());
+            else if (board[fr][fc] instanceof Pawn)
+                copyOfDefender = new Pawn(fr, fc, b.pieceAt(fr, fc).getColor());
+            else // then its a king
+                copyOfDefender = new King(fr, fc, b.pieceAt(fr, fc).getColor());
         }
-        else // i have to worry about removing a piece temporarily.
-        {
-            int tempRow = board[row][col].getRow();
-            int tempCol = board[row][col].getCol();
-            int tempClr = board[row][col].getColor();
 
-            ChessPiece temp = null;
-            if (board[row][col] instanceof Knight)
-                temp = new Knight(tempRow, tempCol, tempClr);
-            else if (board[row][col] instanceof Rook)
-                temp = new Rook(tempRow, tempCol, tempClr);
-            else if (board[row][col] instanceof Bishop)
-                temp = new Bishop(tempRow, tempCol, tempClr);
-            else if (board[row][col] instanceof Queen)
-                temp = new Queen(tempRow, tempCol, tempClr);
-            else if (board[row][col] instanceof Pawn)
-                temp = new Pawn(tempRow, tempCol, tempClr);
+        // When I move pieces make sure I change their values in the getRow getCol stuff
+        // Move the piece from OG to Final.
+        //      Remove the piece from the OG position
+        //      Move the piece to Final Position
+        //System.out.println("before " + b.pieceAt(0,7));
 
-            // like above, use queen as a random pick
-            board[row][col] = new Queen(row,col,color);
+        copyOfAttacker.setRow(fr);
+        copyOfAttacker.setCol(fc);
+        board[fr][fc] = copyOfAttacker;
+        board[or][oc] = null;
 
-            // get whats needed
-            b.getKing(color).setCheck(b);
-            result = b.getKing(color).returnCheck();
+        // Check if the King is in check
+        //      if King is in check return false
+        //      if King is not in check, return true
+        (b.getKing(color)).setCheck(b);
+        boolean result = b.getKing(color).returnCheck();
 
-            // now fix everything to back to where it was
-            board[row][col] = null;
-            board[row][col] = temp;
-            b.getKing(color).setCheck(b);
-        }
-        return result;
+        // Reset everything
+        //      Move the piece from Final to Original
+        //      Return result
+        copyOfAttacker.setRow(or);
+        copyOfAttacker.setCol(oc);
+        board[or][oc] = copyOfAttacker;
+        if (takingPiece)
+            board[fr][fc] = copyOfDefender;
+        else
+            board[fr][fc] = null;
+
+
+        (b.getKing(color)).setCheck(b); // have to do this again to reset the code
+
+        //System.out.println("after " + b.pieceAt(0,7));
+
+        return result; // returns true if in check
     }
+
+    /**
+     * Call this method when the King is not in check.
+     * Used to check if the move is invalid, if it puts the King in check if it moves from there.
+     * row and col are the piece's original location, where its moving from
+     *//*
+    public boolean ifIRemoveThePieceHereDoesItPutKingInCheck(int or, int oc, int fr, int fc, int color, ChessBoard b)
+    {
+        // assume that the piece at OR,OC is not null.
+        // hovers the piece for a second, temporarily remove it from the board
+        // get data needed
+        // return piece to location
+
+        ChessPiece temp = b.pieceAt(row,col); // make copy
+        board[row][col] = null; // temporarily remove object from array
+
+        // get data needed
+        b.getKing(color).setCheck(b);
+        boolean result = b.getKing(color).returnCheck();
+
+        // resets
+        board[row][col]
+
+
+        return result;
+    }*/
 
     /*
      * Pawn promotion method
@@ -284,7 +408,7 @@ public class ChessBoard
         String resp = scan.nextLine();
         while (!resp.equalsIgnoreCase("B") && !resp.equalsIgnoreCase("N") && !resp.equalsIgnoreCase("R") && !resp.equalsIgnoreCase("Q"))
         {
-            System.out.println("[error] wrong input format. (Enter B N R or Q)");
+            System.out.println("[ERROR] Wrong input format. (Enter B N R or Q)");
             resp = scan.nextLine();
         }
 
@@ -308,7 +432,7 @@ public class ChessBoard
         return board;
     }
 
-    /**
+    /*
      * Used to change the board b/c its a private instance variable
      * @param row
      * @param col
@@ -319,12 +443,18 @@ public class ChessBoard
         board[row][col] = piece;
     }
 
+    /*
+     * Simple method returns piece at board position
+     * @param row
+     * @param col
+     * @return
+     */
     public ChessPiece pieceAt(int row, int col)
     {
         return board[row][col];
     }
 
-    /**
+    /*
      * Makes sure the input follows correct protocol.
      * @return false if there is an error in the input.
      * @return true if there is no error
@@ -336,27 +466,27 @@ public class ChessBoard
 
         // checks length first
         if (s1.length() != 2 || s2.length() != 2) {
-            System.out.println("Error: Incorrect input length.");
+            System.out.println("[ERROR]: Incorrect input length.");
             return true;
         }
 
         // checks characters in each string
         // checks chars
         if (!(s1.charAt(0) > 61 && s1.charAt(0) < 'h'+1) || !(s2.charAt(0) > 61 && s2.charAt(0) < 'h'+1)) {
-            System.out.println("Error: Invalid characters used.");
+            System.out.println("[ERROR]: Invalid characters used.");
             return true;
         }
 
         // checks number
         if (!(s1.charAt(1) > '0' && s1.charAt(1) < '9') || !(s2.charAt(1) > '0' && s2.charAt(1) < '9')) {
-            System.out.println("Error: Invalid number.");
+            System.out.println("[ERROR]: Invalid number.");
             return true;
         }
 
         return false;
     }
 
-    /**
+    /*
      * converts the user input into something usable.
      * @param s1
      * @param s2
@@ -364,7 +494,7 @@ public class ChessBoard
      */
     public int[] convertInput(String s1, String s2)
     {
-        /**
+        /*
          * fcol ABCDEFGH
          * rcol 01234567
          * take unicode value and subtract 34 to get literal int.
@@ -388,10 +518,18 @@ public class ChessBoard
         returnVal[3] = (int) s2.charAt(0) - 97; // final col
 
         return returnVal;
-
     }
 
-    // Prints out the board.
+    // this garbage is for en passant
+    public ChessPiece returnChessPieceMovedForEnPassant()
+    {
+        return lastMovedForEnPassant;
+    }
+
+    /*
+     * Used to print out the board
+     * @return String of the entire board
+     */
     public String toString()
     {
         String str = "\t   _______________________________________\n\t";

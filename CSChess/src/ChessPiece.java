@@ -1,14 +1,14 @@
-/**
- *
- * @author Dylan and Ari
+/*
+ * Authors: Dylan and Ari
+ * ChessPiece.java
+ * This class handles the pieces on the chessboard.
+ * Also establishes abstract methods for each individual piece class.
  */
 public abstract class ChessPiece
 {
     private int row;
     private int col;
     private int color;
-    public boolean[][] availableMoves; //changed to public because you need access in Knight.java to pass this in an
-    // overridden method.
 
     /**
      * Creates a ChessPiece with a row, column, and color.
@@ -22,15 +22,6 @@ public abstract class ChessPiece
         row = r;
         col = c;
         color = co;
-        availableMoves = new boolean[8][8];
-
-        for (int i = 0; i < 8; i++)
-        {
-            for (int j = 0; j < 8; j++)
-            {
-                availableMoves[i][j] = false;
-            }
-        }
     }
 
     public int getRow()         { return row; }
@@ -38,25 +29,6 @@ public abstract class ChessPiece
     public void setRow(int r)   { row = r; }
     public void setCol(int c)   { col = c; }
     public int getColor()       { return color; } // 0 white 1 black
-
-    /**
-     * @return The index of the available move.
-     */
-    public boolean getAM(int r, int c)
-    {
-        return availableMoves[r][c];
-    }
-
-    /**
-     * Changes the value of the available move index.
-     * @param r
-     * @param c
-     * @param bool
-     */
-    public void changeAM(int r, int c, boolean bool)
-    {
-        availableMoves[r][c] = bool;
-    }
 
     /**
      *
@@ -76,12 +48,12 @@ public abstract class ChessPiece
      */
     public abstract boolean move(int r, int c, ChessBoard b);
 
-    /**
+    /*
      * Gets the 8x8 boolean array of possible locations this piece can move to.
      *
      * @return an 8x8 boolean array of possible locations this piece can move to
      */
-    public abstract boolean[][] getAvailableMoves(ChessBoard b);
+    //public abstract boolean[][] getAvailableMoves(ChessBoard b);
 
     /**
      * Returns the String representation of this ChessPiece. This will be b or w, representing black or white, followed by either a capital P, B, R, N, Q, or K, representing either Pawn, Bishop, Rook, Knight, Queen, or King respectively.

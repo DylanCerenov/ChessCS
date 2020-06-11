@@ -1,66 +1,22 @@
-// 12MAR2020 9:24PM STATUS: incomplete at the moment.
+/*
+ * Authors: Dylan and Ari
+ * Pawn.java
+ * This class handles all movement pertaining to the pawn piece.
+ */
 public class Pawn extends ChessPiece
 {
+    private boolean hasDoubleJumped = false;
+
     public Pawn(int initialRow, int initialCol, int pieceColor)
     {
         super(initialRow, initialCol, pieceColor);
     }
 
-    public boolean canMove(int r, int c, ChessBoard b)
+    public boolean canMove(int fr, int fc, ChessBoard b)
     {
-        super.availableMoves = this.getAvailableMoves(b);
-        return this.getAM(r, c);
-    }
+        int or = this.getRow();
+        int oc = this.getCol();
 
-    public boolean move(int r, int c, ChessBoard b)
-    {
-        int ogR = this.getRow();
-        int ogC = this.getCol();
-
-        if (this.canMove(r, c, b))
-        {
-            if (b.pieceAt(r, c) != null)
-            {
-                System.out.println(b.pieceAt(ogR, ogC).getColor() + " " + b.pieceAt(ogR, ogC) + " has taken " + b.pieceAt(r, c).getColor() + " " + b.pieceAt(r, c) + "!");
-
-                b.changeBoard(r,c,null);
-            }
-
-            b.changeBoard(r, c, b.pieceAt(ogR, ogC));
-            b.changeBoard(ogR, ogC, null);
-
-            this.setRow(r);
-            this.setCol(c);
-
-            return true;
-        }
-
-        return false;
-    }
-
-    public boolean[][] getAvailableMoves(ChessBoard b)
-    {
-        int ogR = this.getRow();
-        int ogC = this.getCol();
-
-        for (int i = 0; i < 8; i++)
-        {
-            for (int j = 0; j < 8; j++)
-            {
-                if (testMove(ogR, ogC, i, j, b))
-                    this.changeAM(i,j,true);
-            }
-        }
-        return super.availableMoves;
-    }
-
-    //plus one is down
-    //plus one is right
-    /*
-     * Tries to prove false until true.
-     */
-    public boolean testMove(int or, int oc, int fr, int fc, ChessBoard b)
-    {
         /*
          * Unique movement checks:
          *  - Pawns can only move forward.
@@ -77,15 +33,59 @@ public class Pawn extends ChessPiece
          *        TODO: extra credit move
          */
 
+        if (Chess.useFullMoveSet) // only run this code if full game is running...
+        {
+            if(b.pieceAt(or, oc).getColor() == 0) //white
+            {
+                // if the row is right and the column changes by one
+                // moving diagonally from row 3 and moving forward
+                if (or == 3 && Math.abs(oc-fc) == 1 && or - fr == 1)
+                {
+                    // If pawn that just double jumped is last moved
+                    if (b.pieceAt(or,fc) != null && b.pieceAt(or,fc) instanceof Pawn)
+                    {
+                        if (b.pieceAt(or, fc) == b.returnChessPieceMovedForEnPassant() && ((Pawn) b.pieceAt(or,fc)).returnDoubleJumped())
+                        {
+                            if (b.pieceAt(or,oc).getColor() != b.pieceAt(or,fc).getColor())
+                                return true;
+                        }
+                    }
+                }
+            }
+            else // piece is black
+            {
+                if (or == 4 && Math.abs(oc-fc) == 1 && or - fr == -1)
+                {
+                    if (b.pieceAt(or,fc) != null && b.pieceAt(or,fc) instanceof Pawn)
+                    {
+                        if (b.pieceAt(or, fc) == b.returnChessPieceMovedForEnPassant() && ((Pawn) b.pieceAt(or,fc)).returnDoubleJumped())
+                        {
+                            if (b.pieceAt(or,oc).getColor() != b.pieceAt(or,fc).getColor())
+                                return true;
+                        }
+                    }
+                }
+            }    
+        }
+
         int rowDifference = Math.abs(or-fr);
         int colDifference = Math.abs(oc-fc);
 
+        // System.out.println(or + " " + oc + " has piece " + b.pieceAt(or,oc));
+
         // Pawns can only move forward.
         int directionOfMovement = fr-or; // + is for black - is for white
-        if (directionOfMovement < 0 && b.pieceAt(or,oc).getColor() == 1) // if a black piece is moving backwards
+        //System.out.println("mvnt dir: " + directionOfMovement + " and or oc is " + fr + " " + fc);
+        if (directionOfMovement < 0 && (this.getColor() == 1)) // if a black piece is moving backwards
+        {
+            //System.out.println("[error]: backwards movement is not possible with pawn.");
             return false;
-        if (directionOfMovement > 0 && b.pieceAt(or,oc).getColor() == 0) // if a white piece is moving backwards
+        }
+        if (directionOfMovement > 0 && (this.getColor() == 0)) // if a white piece is moving backwards
+        {
+            //System.out.println("[error]: backwards movement is not possible with pawn.");
             return false;
+        }
 
         // Pawn movement checks
         if (oc == fc) // If columns stay same, Pawn is moving straight ahead.
@@ -108,7 +108,7 @@ public class Pawn extends ChessPiece
             else if (rowDifference == 2) // piece moving two ahead
             {
                 int tempDirection = -1; // Defaults to white piece moving, moves - direction
-                if (b.pieceAt(or,oc).getColor() == 1) // black piece moving, moves + direction
+                if (this.getColor() == 1) // black piece moving, moves + direction
                     tempDirection = 1;
 
                 // checks to see if there are pieces in the way
@@ -118,9 +118,9 @@ public class Pawn extends ChessPiece
                     return false;
 
                 // checks original row location.
-                if (b.pieceAt(or,oc).getColor() == 0 && or != 6) // white piece not at row 6 but trying to jump 2
+                if (this.getColor() == 0 && or != 6) // white piece not at row 6 but trying to jump 2
                     return false;
-                if (b.pieceAt(or,oc).getColor() == 1 && or != 1) // black piece not at row 1 but trying to jump 2
+                if (this.getColor() == 1 && or != 1) // black piece not at row 1 but trying to jump 2
                     return false;
             }
             else
@@ -161,12 +161,61 @@ public class Pawn extends ChessPiece
             if (b.pieceAt(fr, fc).getColor() == this.getColor()) // cant take piece of same color
                 return false;
 
-        // cannot move if King is in check.
-        // TODO: come back to this after King is complete.*/
-        if (b.getKing(b.pieceAt(or,oc).getColor()).returnCheck()) // new installment 20MAR2020 8:23PM
-            return b.ifIMoveAPieceHereDoesItRemoveKingFromCheck(fr, fc, b.pieceAt(or,oc).getColor(), b);
+//        return (!b.ifIMoveAPieceHereIsKingInCheck(or,oc,fr,fc,b.pieceAt(or,oc).getColor(), b));
 
         return true;
+    }
+
+    public boolean move(int r, int c, ChessBoard b)
+    {
+        int ogR = this.getRow();
+        int ogC = this.getCol();
+
+        if (this.canMove(r, c, b))
+        {
+            // STALEMATE CHECK:
+            Chess.turnsSincePawnMovedOrCaptureMade = 0;
+
+            if (b.pieceAt(r, c) != null)
+            {
+                if (b.pieceAt(ogR, ogC).getColor() == 0) // if white piece is taking black piece
+                    System.out.println("White piece " + b.pieceAt(ogR, ogC) + " has taken black piece " + b.pieceAt(r,c) + ".");
+                else // if black piece is taking white piece
+                    System.out.println("Black piece " + b.pieceAt(ogR, ogC) + " has taken white piece " + b.pieceAt(r,c) + ".");
+
+                // b.changeBoard(r,c,null);
+            }
+
+            // If the pawn is moving two rows, its double jumping.
+            // This code is used for en passant
+            if (Math.abs(ogR - r) == 2)
+                hasDoubleJumped = true;
+
+            // special movement for en passant that deletes the other pawn
+            if (b.pieceAt(r,c) == null && Math.abs(ogC - c) == 1)
+            {
+                // deletes the other pawn... hopefully
+                b.changeBoard(ogR, c, null);
+            }
+
+            // moves the pawn properly
+            b.changeBoard(r, c, b.pieceAt(ogR, ogC));
+            b.changeBoard(ogR, ogC, null);        
+
+            b.pieceAt(r,c).setRow(r);
+            b.pieceAt(r,c).setCol(c);
+
+            //this.canMove(r,c,b); // new as of 1:48 3/21.
+
+            return true;
+        }
+
+        return false;
+    }
+
+    public boolean returnDoubleJumped() //has double jumped
+    {
+        return hasDoubleJumped;
     }
 
     public String toString()

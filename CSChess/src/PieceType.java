@@ -1,3 +1,8 @@
+/*
+ * Author: Dylan and Ari
+ * PieceType.java
+ * This class would've been useful if we hadn't learned of instanceof.
+ */
 public enum PieceType
 {
     KING, QUEEN, ROOK, KNIGHT, BISHOP, PAWN;
